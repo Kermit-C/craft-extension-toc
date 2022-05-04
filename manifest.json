@@ -1,0 +1,10 @@
+{
+  "id": "pro.kermit.craft-extension-toc",
+  "name": "Table of Content",
+  "fileName": "Table of Content",
+  "author" : "Kermmit",
+  "author-email" : "ckeming@outlook.com",
+  "description" : "A convenient table of content in Craft.",
+  "api": "0.1.0",
+  "main": "index.html"
+}
