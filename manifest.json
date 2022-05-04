@@ -1,10 +1,10 @@
 {
   "id": "pro.kermit.craft-extension-toc",
-  "name": "Table of Content",
-  "fileName": "Table of Content",
-  "author" : "Kermmit",
+  "name": "Table of Contents",
+  "fileName": "Table of Contents",
+  "author" : "Kermit",
   "author-email" : "ckeming@outlook.com",
-  "description" : "A convenient table of content in Craft.",
+  "description" : "Add a table of contents to the side panel.",
   "api": "0.1.0",
   "main": "index.html"
 }
