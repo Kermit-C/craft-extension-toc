@@ -14,11 +14,14 @@ const App: React.FC<{}> = () => {
     }, [isDarkMode]);
 
     const [pageTitle, setPageTitle] = React.useState<string>('');
+    const [pageId, setPageId] = React.useState<string>('');
     const [subBlocks, setSubBlocks] = React.useState<CraftBlock[]>([]);
+    const [subSelectedBlockId, setSubSelectedBlockId] = React.useState<string>('');
 
     React.useEffect(() => {
         refreshCurrentPage();
         setInterval(() => refreshCurrentPage(), 1000);
+        setInterval(() => refreshSelectedBlock(), 3000);
     }, [pageTitle]);
     async function refreshCurrentPage() {
         const result = await craft.dataApi.getCurrentPage();
@@ -28,10 +31,33 @@ const App: React.FC<{}> = () => {
         const pageBlock = result.data;
 
         const pageTitle = pageBlock.content.map((x) => x.text).join();
+        const pageId = pageBlock.id;
         setPageTitle(pageTitle);
+        setPageId(pageId);
         if (pageBlock.type === 'textBlock') {
             setSubBlocks(pageBlock.subblocks);
         }
+    }
+    async function refreshSelectedBlock() {
+        const result = await craft.editorApi.getSelection();
+        if (result.status !== 'success') {
+            throw new Error(result.message);
+        }
+        const selectedBlocks = result.data;
+        if (selectedBlocks.length === 0) {
+            return;
+        }
+
+        let subSelectedBlockId = '';
+        for (const subBlock of subBlocks) {
+            if (getIsTextHeaderBlock(subBlock)) {
+                subSelectedBlockId = subBlock.id;
+            }
+            if (subBlock.id === selectedBlocks[0].id) {
+                break;
+            }
+        }
+        subSelectedBlockId && setSubSelectedBlockId(subSelectedBlockId);
     }
 
     return (
@@ -41,7 +67,15 @@ const App: React.FC<{}> = () => {
                 {subBlocks
                     .filter((block) => getIsTextHeaderBlock(block))
                     .map((block) => (
-                        <li onClick={async () => await handleClickBlock(block.id)}>{getSubBlockText(block)}</li>
+                        <li
+                            className={subSelectedBlockId === block.id ? 'selected' : ''}
+                            onClick={() => {
+                                handleClickBlock(block.spaceId || '', block.id);
+                                setSubSelectedBlockId(block.id);
+                            }}
+                        >
+                            {getSubBlockText(block)}
+                        </li>
                     ))}
             </ul>
         </div>
@@ -58,8 +92,8 @@ function useCraftDarkMode() {
     return isDarkMode;
 }
 
-async function handleClickBlock(blockId: string) {
-    await craft.editorApi.navigateToBlockId(blockId);
+async function handleClickBlock(spaceId: string, blockId: string) {
+    await craft.editorApi.openURL(`craftdocs://open?blockId=${blockId}&spaceId=${spaceId}`);
 }
 
 function getIsTextHeaderBlock(block: CraftBlock): boolean {

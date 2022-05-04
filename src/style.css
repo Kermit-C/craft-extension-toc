@@ -57,9 +57,11 @@ body.dark li:hover {
 }
 
 body li.selected {
+    color: rgb(15, 83, 144);
     background-color: #f5f9ff;
 }
 
 body.dark li.selected {
+    color: rgb(134, 205, 229);
     background-color: #252a2d;
 }
