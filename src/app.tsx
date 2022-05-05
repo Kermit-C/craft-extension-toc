@@ -19,46 +19,17 @@ const App: React.FC<{}> = () => {
     const [subSelectedBlockId, setSubSelectedBlockId] = React.useState<string>('');
 
     React.useEffect(() => {
-        refreshCurrentPage();
-        setInterval(() => refreshCurrentPage(), 1000);
-        setInterval(() => refreshSelectedBlock(), 3000);
+        refresh();
+        setInterval(() => refresh(), 1000);
+        async function refresh() {
+            const { pageTitle, pageId, subBlocks } = await refreshCurrentPage();
+            setPageTitle(pageTitle);
+            setPageId(pageId);
+            setSubBlocks(subBlocks);
+            const subSelectedBlockId = await refreshSelectedBlock(subBlocks);
+            subSelectedBlockId && setSubSelectedBlockId(subSelectedBlockId);
+        }
     }, [pageTitle]);
-    async function refreshCurrentPage() {
-        const result = await craft.dataApi.getCurrentPage();
-        if (result.status !== 'success') {
-            throw new Error(result.message);
-        }
-        const pageBlock = result.data;
-
-        const pageTitle = pageBlock.content.map((x) => x.text).join();
-        const pageId = pageBlock.id;
-        setPageTitle(pageTitle);
-        setPageId(pageId);
-        if (pageBlock.type === 'textBlock') {
-            setSubBlocks(pageBlock.subblocks);
-        }
-    }
-    async function refreshSelectedBlock() {
-        const result = await craft.editorApi.getSelection();
-        if (result.status !== 'success') {
-            throw new Error(result.message);
-        }
-        const selectedBlocks = result.data;
-        if (selectedBlocks.length === 0) {
-            return;
-        }
-
-        let subSelectedBlockId = '';
-        for (const subBlock of subBlocks) {
-            if (getIsTextHeaderBlock(subBlock)) {
-                subSelectedBlockId = subBlock.id;
-            }
-            if (subBlock.id === selectedBlocks[0].id) {
-                break;
-            }
-        }
-        subSelectedBlockId && setSubSelectedBlockId(subSelectedBlockId);
-    }
 
     return (
         <div>
@@ -92,6 +63,43 @@ function useCraftDarkMode() {
     return isDarkMode;
 }
 
+async function refreshCurrentPage() {
+    const result = await craft.dataApi.getCurrentPage();
+    if (result.status !== 'success') {
+        throw new Error(result.message);
+    }
+    const pageBlock = result.data;
+
+    const pageTitle = pageBlock.content.map((x) => x.text).join();
+    const pageId = pageBlock.id;
+    return { pageTitle, pageId, subBlocks: pageBlock.subblocks };
+}
+
+async function refreshSelectedBlock(subBlocks: CraftBlock[]) {
+    const result = await craft.editorApi.getSelection();
+    if (result.status !== 'success') {
+        throw new Error(result.message);
+    }
+    const selectedBlocks = result.data;
+    if (selectedBlocks.length === 0) {
+        return '';
+    }
+
+    const currentSelectedBlockId = selectedBlocks[0].id;
+    const currentSelectedBlockIndex = subBlocks.findIndex((x) => x.id === currentSelectedBlockId);
+    if (currentSelectedBlockIndex === -1) {
+        return '';
+    }
+
+    let subSelectedBlockId = '';
+    for (const subBlock of subBlocks.slice(0, currentSelectedBlockIndex + 1)) {
+        if (getIsTextHeaderBlock(subBlock)) {
+            subSelectedBlockId = subBlock.id;
+        }
+    }
+    return subSelectedBlockId;
+}
+
 async function handleClickBlock(spaceId: string, blockId: string) {
     await craft.editorApi.openURL(`craftdocs://open?blockId=${blockId}&spaceId=${spaceId}`);
 }
@@ -103,11 +111,34 @@ function getIsTextHeaderBlock(block: CraftBlock): boolean {
         return ['title', 'subtitle', 'heading', 'strong'].includes(block.style.textStyle);
     }
 }
+
 function getSubBlockText(block: CraftBlock): string {
     if (block.type !== 'textBlock') {
         return '';
     } else {
-        const text = block.content.map((x) => x.text).join();
+        let text = block.content.map((x) => x.text).join();
+        switch (block.listStyle.type) {
+            case 'numbered':
+                if (block.listStyle.ordinal) {
+                    text = `${block.listStyle.ordinal}. ${text}`;
+                }
+                break;
+            case 'bullet':
+                text = `• ${text}`;
+                break;
+            case 'todo':
+                if (block.listStyle.state === 'unchecked') {
+                    text = `□ ${text}`;
+                } else if (block.listStyle.state === 'checked') {
+                    text = `☑ ${text}`;
+                } else if (block.listStyle.state === 'canceled') {
+                    text = `☒ ${text}`;
+                }
+                break;
+            case 'toggle':
+                text = `▸ ${text}`;
+                break;
+        }
         switch (block.style.textStyle) {
             case 'title':
                 return text;
