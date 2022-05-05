@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import craftXIconSrc from './craftx-icon.png';
 import { CraftBlock } from '@craftdocs/craft-extension-api';
 
 const App: React.FC<{}> = () => {
@@ -20,14 +19,27 @@ const App: React.FC<{}> = () => {
 
     React.useEffect(() => {
         refresh();
-        setInterval(() => refresh(), 1000);
         async function refresh() {
-            const { pageTitle, pageId, subBlocks } = await refreshCurrentPage();
-            setPageTitle(pageTitle);
-            setPageId(pageId);
-            setSubBlocks(subBlocks);
-            const subSelectedBlockId = await refreshSelectedBlock(subBlocks);
-            subSelectedBlockId && setSubSelectedBlockId(subSelectedBlockId);
+            try {
+                const { pageTitle, pageId, subBlocks } = await refreshCurrentPage();
+                setPageTitle(pageTitle);
+                setPageId(pageId);
+                setSubBlocks(subBlocks);
+                const subSelectedBlockId = await refreshSelectedBlock(subBlocks);
+                subSelectedBlockId && setSubSelectedBlockId(subSelectedBlockId);
+
+                const timeout = setTimeout(() => {
+                    clearTimeout(timeout);
+                    refresh();
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+
+                const timeout = setTimeout(() => {
+                    clearTimeout(timeout);
+                    refresh();
+                }, 5000);
+            }
         }
     }, [pageTitle]);
 
@@ -72,7 +84,13 @@ async function refreshCurrentPage() {
 
     const pageTitle = pageBlock.content.map((x) => x.text).join();
     const pageId = pageBlock.id;
-    return { pageTitle, pageId, subBlocks: pageBlock.subblocks };
+    const subBlocks = pageBlock.subblocks.map((block) => {
+        if ('subblocks' in block) {
+            block.subblocks.splice(0, block.subblocks.length);
+        }
+        return block;
+    });
+    return { pageTitle, pageId, subBlocks };
 }
 
 async function refreshSelectedBlock(subBlocks: CraftBlock[]) {
