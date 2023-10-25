@@ -191,12 +191,64 @@ function hasNo(block: CraftBlock): boolean {
 async function addNo() {
     const { subBlocks } = await refreshCurrentPage();
 
+    let topHierarchy = 4;
     let titleNo = 0;
     let subtitleNo = 0;
     let headingNo = 0;
     let strongNo = 0;
 
     const textHeaderBlock = subBlocks.filter((block) => getIsTextHeaderBlock(block));
+
+    textHeaderBlock.forEach((block) => {
+        if (block.type !== 'textBlock') {
+            return;
+        }
+
+        switch (block.style.textStyle) {
+            case 'title':
+                if (topHierarchy > 1) {
+                    topHierarchy = 1;
+                }
+                break;
+            case 'subtitle':
+                if (topHierarchy > 2) {
+                    topHierarchy = 2;
+                }
+                break;
+            case 'heading':
+                if (topHierarchy > 3) {
+                    topHierarchy = 3;
+                }
+                strongNo = 0;
+                break;
+            case 'strong':
+                if (topHierarchy > 4) {
+                    topHierarchy = 4;
+                }
+                break;
+        }
+    });
+    const getNoPrefix = (currHierarchy: number) => {
+        let prefix = '';
+        for (let i = topHierarchy; i < currHierarchy; i++) {
+            switch (i) {
+                case 1:
+                    prefix += `${titleNo}.`;
+                    break;
+                case 2:
+                    prefix += `${subtitleNo}.`;
+                    break;
+                case 3:
+                    prefix += `${headingNo}.`;
+                    break;
+                case 4:
+                    prefix += `${strongNo}.`;
+                    break;
+            }
+        }
+        return prefix;
+    };
+
     textHeaderBlock.forEach((block) => {
         if (block.type !== 'textBlock') {
             return;
@@ -208,22 +260,22 @@ async function addNo() {
         let currNo = '';
         switch (block.style.textStyle) {
             case 'title':
-                currNo = `${++titleNo}`;
+                currNo = getNoPrefix(1) + `${++titleNo}`;
                 subtitleNo = 0;
                 headingNo = 0;
                 strongNo = 0;
                 break;
             case 'subtitle':
-                currNo = `${titleNo}.${++subtitleNo}`;
+                currNo = getNoPrefix(2) + `${++subtitleNo}`;
                 headingNo = 0;
                 strongNo = 0;
                 break;
             case 'heading':
-                currNo = `${titleNo}.${subtitleNo}.${++headingNo}`;
+                currNo = getNoPrefix(3) + `${++headingNo}`;
                 strongNo = 0;
                 break;
             case 'strong':
-                currNo = `${titleNo}.${subtitleNo}.${headingNo}.${++strongNo}`;
+                currNo = getNoPrefix(4) + `${++strongNo}`;
                 break;
             default:
                 return;
