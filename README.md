@@ -10,3 +10,17 @@ Simply run `npm install` and than `npm run build` to generate the .craftX file w
 
 You can use `npm run dev` to test and debug in your local environment
 
+## Examples
+
+> Basic usage:
+
+![Basic usage](pic/1.jpg)
+
+> Auto-Numbering:
+
+![Auto-Numbering](pic/2.jpg)
+
+> Dark Mode:
+
+![Dark Mode](pic/3.jpg)
+
