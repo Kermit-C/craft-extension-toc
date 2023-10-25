@@ -65,3 +65,32 @@ body.dark li.selected {
     color: rgb(134, 205, 229);
     background-color: #252a2d;
 }
+
+body .text-btn {
+    cursor: pointer;
+    margin: 0 0.25rem;
+    padding: 0.4rem;
+    font-size: 8pt;
+    border-radius: 0.3rem;
+    color: #666666;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    background-color: #f7f7f6;
+    text-decoration: none;
+}
+
+body .text-btn:hover {
+    background-color: #f5f9ff;
+}
+
+body.dark .text-btn {
+    color: #eeeeee;
+    background-color: #333333;
+}
+
+body.dark .text-btn:hover {
+    background-color: #252a2d;
+}

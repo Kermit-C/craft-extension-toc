@@ -45,7 +45,15 @@ const App: React.FC<{}> = () => {
 
     return (
         <div>
-            <h1>Contents</h1>
+            <h1>
+                <span style={{ marginRight: '0.25rem' }}>Contents</span>
+                <span className="text-btn" onClick={addNo}>
+                    ADD NO.
+                </span>
+                <span className="text-btn" onClick={deleteNo}>
+                    DEL NO.
+                </span>
+            </h1>
             <ul>
                 {subBlocks
                     .filter((block) => getIsTextHeaderBlock(block))
@@ -82,7 +90,7 @@ async function refreshCurrentPage() {
     }
     const pageBlock = result.data;
 
-    const pageTitle = pageBlock.content.map((x) => x.text).join();
+    const pageTitle = pageBlock.content.map((x) => x.text).join('');
     const pageId = pageBlock.id;
     const subBlocks = pageBlock.subblocks.map((block) => {
         if ('subblocks' in block) {
@@ -134,7 +142,7 @@ function getSubBlockText(block: CraftBlock): string {
     if (block.type !== 'textBlock') {
         return '';
     } else {
-        let text = block.content.map((x) => x.text).join();
+        let text = block.content.map((x) => x.text).join('');
         switch (block.listStyle.type) {
             case 'numbered':
                 if (block.listStyle.ordinal) {
@@ -169,6 +177,89 @@ function getSubBlockText(block: CraftBlock): string {
             default:
                 return '　　　　' + text;
         }
+    }
+}
+
+function hasNo(block: CraftBlock): boolean {
+    if (block.type !== 'textBlock') {
+        return false;
+    } else {
+        return block.content[0].text.match(/^[\d\.]+$/) !== null && Boolean(block.content[0].isCode);
+    }
+}
+
+async function addNo() {
+    const { subBlocks } = await refreshCurrentPage();
+
+    let titleNo = 0;
+    let subtitleNo = 0;
+    let headingNo = 0;
+    let strongNo = 0;
+
+    const textHeaderBlock = subBlocks.filter((block) => getIsTextHeaderBlock(block));
+    textHeaderBlock.forEach((block) => {
+        if (block.type !== 'textBlock') {
+            return;
+        }
+        if (hasNo(block)) {
+            block.content.splice(0, 1);
+        }
+
+        let currNo = '';
+        switch (block.style.textStyle) {
+            case 'title':
+                currNo = `${++titleNo}`;
+                subtitleNo = 0;
+                headingNo = 0;
+                strongNo = 0;
+                break;
+            case 'subtitle':
+                currNo = `${titleNo}.${++subtitleNo}`;
+                headingNo = 0;
+                strongNo = 0;
+                break;
+            case 'heading':
+                currNo = `${titleNo}.${subtitleNo}.${++headingNo}`;
+                strongNo = 0;
+                break;
+            case 'strong':
+                currNo = `${titleNo}.${subtitleNo}.${headingNo}.${++strongNo}`;
+                break;
+            default:
+                return;
+        }
+
+        if (!block.content[0].text.startsWith(' ')) {
+            block.content[0].text = ' ' + block.content[0].text;
+        }
+        block.content.unshift({ text: currNo, isCode: true });
+    });
+
+    const updateResult = await craft.dataApi.updateBlocks(textHeaderBlock);
+    if (updateResult.status !== 'success') {
+        throw new Error(updateResult.message);
+    }
+}
+
+async function deleteNo() {
+    const { subBlocks } = await refreshCurrentPage();
+
+    const textHeaderBlock = subBlocks.filter((block) => getIsTextHeaderBlock(block));
+    textHeaderBlock.forEach((block) => {
+        if (block.type !== 'textBlock') {
+            return;
+        }
+        if (hasNo(block)) {
+            block.content.splice(0, 1);
+        }
+        if (block.content[0].text.startsWith(' ')) {
+            block.content[0].text = block.content[0].text.slice(1);
+        }
+    });
+
+    const updateResult = await craft.dataApi.updateBlocks(textHeaderBlock);
+    if (updateResult.status !== 'success') {
+        throw new Error(updateResult.message);
     }
 }
 
